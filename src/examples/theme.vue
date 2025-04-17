@@ -1,18 +1,22 @@
 <template>
     <div>
+        <el-radio-group v-model="theme" style="margin-bottom: 10px;">
+            <el-radio :label="1">主题1</el-radio>
+            <el-radio :label="2">主题2</el-radio>
+        </el-radio-group>
+        <br>
         <SkuForm
             :source-attribute="sourceAttribute"
-            :attribute.sync="attribute"
-            :sku.sync="sku"
+            v-model:attribute="attribute"
+            v-model:sku="sku"
             :theme="theme"
         />
-        <el-button type="primary" style="margin-top: 10px;" @click="switchTheme">切换主题</el-button>
-        <el-row type="flex" :gutter="20">
-            <el-col>
+        <el-row :gutter="20">
+            <el-col :span="12">
                 <el-divider content-position="left">attribute 数据</el-divider>
                 <pre><code>{{ attribute }}</code></pre>
             </el-col>
-            <el-col>
+            <el-col :span="12">
                 <el-divider content-position="left">sku 数据</el-divider>
                 <pre><code>{{ sku }}</code></pre>
             </el-col>
@@ -20,29 +24,21 @@
     </div>
 </template>
 
-<script>
-export default {
-    data() {
-        return {
-            sourceAttribute: [
-                {
-                    name: '颜色',
-                    item: ['黑', '金', '白']
-                },
-                {
-                    name: '内存',
-                    item: ['16G', '32G']
-                }
-            ],
-            attribute: [],
-            sku: [],
-            theme: 1
-        }
+<script setup>
+import { ref } from 'vue'
+import SkuForm from '../components/SkuForm.vue'
+
+const theme = ref(1)
+const sourceAttribute = ref([
+    {
+        name: '颜色',
+        item: ['黑', '金', '白']
     },
-    methods: {
-        switchTheme() {
-            this.theme = this.theme == 1 ? 2 : 1
-        }
+    {
+        name: '内存',
+        item: ['16G', '32G']
     }
-}
+])
+const attribute = ref([])
+const sku = ref([])
 </script>

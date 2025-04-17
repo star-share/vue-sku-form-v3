@@ -1,11 +1,9 @@
-import Vue from 'vue'
-import Router from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import example from './example'
 
-Vue.use(Router)
-
-const router = new Router({
-    routes: example
+const router = createRouter({
+  history: createWebHashHistory(),
+  routes: example
 })
 
 export default router

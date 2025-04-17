@@ -1,47 +1,49 @@
 {
     "name": "vue-sku-form",
-    "description": "基于 Vue & ElementUI 的电商 SKU 表单配置组件",
+    "description": "基于 Vue3 & Element Plus 的电商 SKU 表单配置组件",
     "keywords": [
         "sku",
         "vue",
         "element",
-        "element-ui",
+        "element-plus",
         "form"
     ],
-    "version": "0.4.1",
-    "directories": {
-        "dist": "dist"
-    },
-    "homepage": "https://hooray.github.io/vue-sku-form",
+    "version": "1.0.0",
+    "type": "module",
     "private": false,
-    "main": "./dist/SkuForm.umd.min.js",
-    "scripts": {
-        "serve": "vue-cli-service serve",
-        "build": "vue-cli-service build",
-        "lint": "vue-cli-service lint",
-        "build-lib": "vue-cli-service build --target lib --name SkuForm ./src/components/index.js"
+    "files": [
+        "dist"
+    ],
+    "main": "./dist/SkuForm.umd.js",
+    "module": "./dist/SkuForm.js",
+    "exports": {
+        ".": {
+            "import": "./dist/SkuForm.js",
+            "require": "./dist/SkuForm.umd.js"
+        },
+        "./dist/style.css": "./dist/style.css"
     },
+    "scripts": {
+        "dev": "vite",
+        "preview": "vite preview",
+        "build": "vite build",
+        "build-lib": "vite build",
+        "lint": "eslint --ext .js,.vue src"
+    },
+    "author": "",
+    "license": "MIT",
     "dependencies": {
-        "core-js": "^3.6.5",
-        "element-ui": "^2.13.2",
-        "vue": "^2.6.11",
-        "vue-router": "^3.4.3"
+        "element-plus": "^2.3.12",
+        "vue": "^3.3.4",
+        "vue-router": "^4.2.4"
     },
     "devDependencies": {
-        "@vue/cli-plugin-babel": "~4.5.0",
-        "@vue/cli-plugin-eslint": "~4.5.0",
-        "@vue/cli-service": "~4.5.0",
-        "babel-eslint": "^10.1.0",
-        "eslint": "^7.8.0",
-        "eslint-plugin-vue": "^7.1.0",
-        "sass": "^1.29.0",
-        "sass-loader": "^10.0.1",
-        "sass-resources-loader": "^2.1.0",
-        "stylelint": "^13.7.0",
-        "stylelint-config-recommended-scss": "^4.2.0",
-        "stylelint-config-standard": "^20.0.0",
-        "stylelint-scss": "^3.18.0",
-        "vue-template-compiler": "^2.6.11"
+        "@vitejs/plugin-vue": "^4.2.3",
+        "eslint": "^8.46.0",
+        "eslint-plugin-vue": "^9.16.1",
+        "sass": "^1.64.2",
+        "sass-loader": "^13.3.2",
+        "vite": "^4.4.9"
     },
     "eslintConfig": {
         "root": true,
@@ -49,11 +51,12 @@
             "node": true
         },
         "extends": [
-            "plugin:vue/essential",
+            "plugin:vue/vue3-essential",
             "eslint:recommended"
         ],
         "parserOptions": {
-            "parser": "babel-eslint"
+            "ecmaVersion": 2022,
+            "sourceType": "module"
         },
         "rules": {}
     },

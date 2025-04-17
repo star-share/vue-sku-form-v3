@@ -1,511 +1,610 @@
 <template>
-    <div class="sku-container">
-        <div v-if="!disabled" class="sku-check">
-            <div v-if="theme == 1" class="theme-1">
-                <el-card v-for="(item, index) in myAttribute" :key="index" class="item" shadow="never">
-                    <div slot="header">{{ item.name }}</div>
-                    <el-checkbox v-for="(item2, index2) in item.item" :key="index2" v-model="item2.checked" :label="item2.name" size="small" />
-                    <el-input v-if="item.canAddAttribute" v-model="item.addAttribute" size="small" placeholder="新增一个规格" class="add-attr" @keyup.enter.native="onAddAttribute(index)">
-                        <el-button slot="append" size="small" icon="el-icon-plus" @click="onAddAttribute(index)">添加</el-button>
+    <div>
+        <div class="sku-form-container" :class="`sku-form-container-${theme}`" v-if="!disabled">
+            <div class="sku-form-section" v-for="(attr, attrIndex) in myAttribute" :key="attrIndex">
+                <div class="sku-form-title">
+                    <span>{{ attr.name }}</span>
+                </div>
+                <div class="sku-form-tags-box">
+                    <div class="checkbox-group">
+                        <el-checkbox
+                            v-for="(item, tagIndex) in attr.item"
+                            :key="tagIndex"
+                            v-model="item.checked"
+                        >
+                            {{ item.name }}
+                        </el-checkbox>
+                    </div>
+                </div>
+                <div class="sku-form-add-tags" v-if="attr.canAddAttribute">
+                    <el-input 
+                        v-model="inputValues[attrIndex]"
+                        placeholder="请输入规格名称" 
+                        size="small"
+                        @keyup.enter="onAddAttribute(attrIndex)"
+                    >
+                        <template #append>
+                            <el-button :icon="Plus" @click="onAddAttribute(attrIndex)">添加</el-button>
+                        </template>
                     </el-input>
-                </el-card>
+                </div>
             </div>
-            <el-table v-else :data="myAttribute" :show-header="false" class="theme-2">
-                <el-table-column prop="name" width="120" :resizable="false" />
-                <el-table-column>
-                    <template slot-scope="scope">
-                        <el-checkbox v-for="(item2, index2) in scope.row.item" :key="index2" v-model="item2.checked" :label="item2.name" size="small" />
+        </div>
+
+        <el-form 
+            ref="formRef" 
+            :model="form" 
+            :rules="rules" 
+            class="sku-form-table"
+            :class="disabled ? 'sku-form-table-disabled' : ''"
+        >
+            <el-table
+                :data="form.skuData"
+                border
+                style="width: 100%"
+                :key="form.skuData.length"
+            >
+                <el-table-column 
+                    v-for="(col, colIndex) in emitAttribute" 
+                    :key="colIndex"
+                    :label="col.name"
+                    align="center"
+                >
+                    <template #default="{ row }">
+                        <span>{{ row[col.name] }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column width="250">
-                    <template slot-scope="scope">
-                        <el-input v-model="scope.row.addAttribute" size="small" placeholder="新增一个规格" class="add-attr" @keyup.enter.native="onAddAttribute(scope.$index)">
-                            <el-button slot="append" size="small" icon="el-icon-plus" @click="onAddAttribute(scope.$index)">添加</el-button>
-                        </el-input>
+
+                <el-table-column 
+                    v-for="(col, colIndex) in structure"
+                    :key="colIndex"
+                    :label="col.label"
+                    align="center"
+                >
+                    <template #header v-if="col.batch !== false && col.type === 'input' && isBatch">
+                        <div class="sku-form-batch">
+                            <el-input v-model="batch[col.name]" :placeholder="`统一设置${col.label}`" size="small">
+                                <template #append>
+                                    <el-button @click="onBatchSet(col.name)">批量设置</el-button>
+                                </template>
+                            </el-input>
+                        </div>
+                    </template>
+
+                    <template #default="{ row, $index }">
+                        <div v-if="col.type === 'slot'">
+                            <slot :name="col.name" :row="row" :index="$index" />
+                        </div>
+                        <el-form-item 
+                            v-else 
+                            :prop="`skuData.${$index}.${col.name}`" 
+                            :class="`sku-form-${$index}-${col.name}`"
+                        >
+                            <el-tooltip
+                                v-if="col.tips"
+                                :content="col.tips"
+                                placement="top"
+                                :hide-after="0"
+                            >
+                                <el-icon class="sku-form-tips"><InfoFilled /></el-icon>
+                            </el-tooltip>
+                            <el-input 
+                                v-model="row[col.name]"
+                                size="small"
+                                :placeholder="col.placeholder" 
+                                :disabled="col.disabled"
+                            />
+                        </el-form-item>
                     </template>
                 </el-table-column>
             </el-table>
-        </div>
-        <div class="sku-list">
-            <el-form ref="form" :model="form" status-icon inline-message>
-                <el-table :data="form.skuData" stripe border highlight-current-row>
-                    <!-- 考虑到异步加载的情况，如果 attribute 数据先加载完成，则表头会立马展示，效果不理想，故使用emitAttribute 数据，该数据为计算属性，通过 myAttribute 生成，结构与 attribute 一致 -->
-                    <el-table-column v-if="emitAttribute.length > 0" type="index" width="50" align="center" :resizable="false" />
-                    <el-table-column v-for="(attr, index) in emitAttribute" :key="`attribute-${index}`" :label="attr.name" :prop="attr.name" width="120" align="center" :resizable="false" sortable />
-                    <el-table-column v-for="(item, index) in structure" :key="`structure-${index}`" :label="item.label" :prop="item.name" align="center" :resizable="false" min-width="120px">
-                        <!-- 自定义表头 -->
-                        <template slot="header">
-                            <span :class="{'required_title': item.required}">
-                                {{ item.label }}
-                            </span>
-                            <el-tooltip v-if="item.tip" effect="dark" :content="item.tip" placement="top">
-                                <i class="el-icon-info" />
-                            </el-tooltip>
-                        </template>
-                        <!-- 自定义表格内部展示 -->
-                        <template slot-scope="scope">
-                            <!-- 增加是 key 是为了保证异步验证不会出现 skuData 数据变化后无法验证的 bug -->
-                            <el-form-item v-if="item.type == 'input'" :key="`structure-input-${index}-${scope.row.sku}`" :prop="'skuData.' + scope.$index + '.' + item.name" :rules="rules[item.name]">
-                                <el-input v-model="scope.row[item.name]" :placeholder="`请输入${item.label}`" size="small" />
-                            </el-form-item>
-                            <el-form-item v-else-if="item.type == 'slot'" :key="`structure-input-${index}-${scope.row.sku}`" :prop="'skuData.' + scope.$index + '.' + item.name" :rules="rules[item.name]">
-                                <slot :name="item.name" :$index="scope.$index" :row="scope.row" :column="scope.column" />
-                            </el-form-item>
-                        </template>
-                    </el-table-column>
-                    <!-- 批量设置，当 sku 数超过 2 个时出现 -->
-                    <template v-if="isBatch && form.skuData.length > 2" slot="append">
-                        <el-table :data="[{}]" :show-header="false">
-                            <el-table-column :width="attribute.length * 120 + 50" align="center" :resizable="false">批量设置</el-table-column>
-                            <el-table-column v-for="(item, index) in structure" :key="`batch-structure-${index}`" align="center" :resizable="false" min-width="120px">
-                                <el-input v-if="item.type == 'input' && item.batch != false" v-model="batch[item.name]" :placeholder="`填写一个${item.label}`" size="small" @keyup.enter.native="onBatchSet(item.name)" />
-                            </el-table-column>
-                        </el-table>
-                    </template>
-                </el-table>
-            </el-form>
-        </div>
+        </el-form>
     </div>
 </template>
 
-<script>
-export default {
-    name: 'SkuForm',
-    props: {
-        /**
-         * 原始规格数据
-         * sourceAttribute: [
-         *   { name: '颜色', item: ['黑', '金', '白'] },
-         *   { name: '内存', item: ['16G', '32G'] },
-         *   { name: '运营商', item: ['电信', '移动', '联通'] }
-         * ]
-         */
-        sourceAttribute: {
-            type: Array,
-            default: () => []
-        },
-        /**
-         * 已使用的规格数据，用于复原数据，支持.sync修饰符
-         * attribute: [
-         *   { name: '颜色', item: ['黑'] },
-         *   { name: '运营商', item: ['电信', '移动', '联通'] }
-         * ]
-         */
-        attribute: {
-            type: Array,
-            default: () => []
-        },
-        /**
-         * 用于复原sku数据，支持.sync修饰符
-         * sku: [
-         *   { sku: '黑;电信', price: 1, stock: 1 },
-         *   { sku: '黑;移动', price: 2, stock: 2 },
-         *   { sku: '黑;联通', price: 3, stock: 3 }
-         * ]
-         */
-        sku: {
-            type: Array,
-            default: () => []
-        },
-        /**
-         * 表格结构，注意name字段，用于输出sku数据
-         */
-        structure: {
-            type: Array,
-            default: () => [
-                { name: 'price', type: 'input', label: '价格' },
-                { name: 'stock', type: 'input', label: '库存' }
-            ]
-        },
-        // sku 字段分隔符
-        separator: {
-            type: String,
-            default: ';'
-        },
-        // 无规格的 sku
-        emptySku: {
-            type: String,
-            default: ''
-        },
-        // 是否显示 sku 选择栏
-        disabled: {
-            type: Boolean,
-            default: false
-        },
-        // 主题风格
-        theme: {
-            type: Number,
-            default: 1
-        },
-        // 是否开启异步加载
-        async: {
-            type: Boolean,
-            default: false
-        }
+<script setup>
+import { ref, reactive, computed, watch, toRefs, nextTick } from 'vue'
+import { Plus, InfoFilled } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+
+const props = defineProps({
+    /**
+     * 原始规格数据
+     * sourceAttribute: [
+     *   { name: '颜色', item: ['黑', '金', '白'] },
+     *   { name: '内存', item: ['16G', '32G'] },
+     *   { name: '运营商', item: ['电信', '移动', '联通'] }
+     * ]
+     */
+    sourceAttribute: {
+        type: Array,
+        default: () => []
     },
-    data() {
+    /**
+     * 已使用的规格数据，用于复原数据，支持v-model:attribute修饰符
+     * attribute: [
+     *   { name: '颜色', item: ['黑'] },
+     *   { name: '运营商', item: ['电信', '移动', '联通'] }
+     * ]
+     */
+    attribute: {
+        type: Array,
+        default: () => []
+    },
+    /**
+     * 用于复原sku数据，支持v-model:sku修饰符
+     * sku: [
+     *   { sku: '黑;电信', price: 1, stock: 1 },
+     *   { sku: '黑;移动', price: 2, stock: 2 },
+     *   { sku: '黑;联通', price: 3, stock: 3 }
+     * ]
+     */
+    sku: {
+        type: Array,
+        default: () => []
+    },
+    /**
+     * 表格结构，注意name字段，用于输出sku数据
+     */
+    structure: {
+        type: Array,
+        default: () => [
+            { name: 'price', type: 'input', label: '价格' },
+            { name: 'stock', type: 'input', label: '库存' }
+        ]
+    },
+    // sku 字段分隔符
+    separator: {
+        type: String,
+        default: ';'
+    },
+    // 无规格的 sku
+    emptySku: {
+        type: String,
+        default: ''
+    },
+    // 是否显示 sku 选择栏
+    disabled: {
+        type: Boolean,
+        default: false
+    },
+    // 主题风格
+    theme: {
+        type: Number,
+        default: 1
+    },
+    // 是否开启异步加载
+    async: {
+        type: Boolean,
+        default: false
+    },
+    // 是否可添加属性值
+    canAddAttribute: {
+        type: Boolean,
+        default: true
+    }
+})
+
+const emit = defineEmits(['update:attribute', 'update:sku', 'validate'])
+
+// 使用toRefs优化props解构，保持响应性
+const { sourceAttribute, attribute, sku, structure, separator, emptySku, async: isAsync, canAddAttribute } = toRefs(props)
+
+// 表单引用
+const formRef = ref(null)
+const isInit = ref(false)
+
+// 输入框的值独立管理，避免深层次响应式问题
+const inputValues = ref([])
+
+// 数据
+const form = reactive({
+    skuData: []
+})
+
+// 批量设置暂存数据
+const batch = reactive({})
+
+// 属性数据(包含选中状态)
+const myAttribute = ref([])
+
+// 计算规则
+const rules = computed(() => {
+    const result = {}
+    structure.value.forEach(item => {
+        if (item.required) {
+            const rule = { required: true, message: `请输入${item.label}`, trigger: 'blur' }
+            if (item.validator) {
+                rule.validator = item.validator
+            }
+            result[item.name] = [rule]
+        } else if (item.validator) {
+            result[item.name] = [{ validator: item.validator, trigger: 'blur' }]
+        }
+    })
+    return result
+})
+
+// 是否显示批量设置
+const isBatch = computed(() => {
+    return structure.value.some(item => item.type === 'input' && item.batch !== false)
+})
+
+// 仅输出勾选的属性
+const emitAttribute = computed(() => {
+    return myAttribute.value.map(attr => {
         return {
-            isInit: false,
-            myAttribute: [],
-            form: {
-                skuData: []
-            },
-            batch: {}
+            name: attr.name,
+            item: attr.item.filter(item => item.checked).map(item => item.name)
         }
-    },
-    computed: {
-        rules() {
-            // 重新生成验证规则
-            let rules = {}
-            this.structure.forEach(v => {
-                if (v.type == 'input') {
-                    rules[v.name] = []
-                    if (v.required) {
-                        rules[v.name].push({ required: true, message: `${v.label}不能为空`, trigger: 'blur' })
-                    }
-                    if (v.validate) {
-                        rules[v.name].push({ validator: this.customizeValidate, trigger: 'blur' })
-                    }
-                } else if (v.type == 'slot') {
-                    rules[v.name] = []
-                    if (v.required) {
-                        rules[v.name].push({ required: true, message: `${v.label}不能为空`, trigger: ['change', 'blur'] })
-                    }
-                    if (v.validate) {
-                        rules[v.name].push({ validator: this.customizeValidate, trigger: ['change', 'blur'] })
-                    }
+    }).filter(attr => attr.item.length > 0)
+})
+
+// 初始化方法
+const init = () => {
+    nextTick(() => {
+        isInit.value = true
+        // 初始化 myAttribute
+        const newMyAttribute = []
+        // 根据 sourceAttribute 复原 myAttribute 的结构
+        sourceAttribute.value.forEach(v => {
+            const temp = {
+                name: v.name,
+                canAddAttribute: typeof v.canAddAttribute !== 'undefined' ? v.canAddAttribute : canAddAttribute.value,
+                addAttribute: '',
+                item: []
+            }
+            v.item.forEach(itemName => {
+                temp.item.push({
+                    name: itemName,
+                    checked: false
+                })
+            })
+            newMyAttribute.push(temp)
+        })
+        
+        // 初始化输入值数组
+        inputValues.value = Array(sourceAttribute.value.length).fill('');
+        
+        // 根据 attribute 更新 myAttribute
+        attribute.value.forEach(attrVal => {
+            newMyAttribute.forEach(myAttrVal => {
+                if (attrVal.name === myAttrVal.name) {
+                    attrVal.item.forEach(attrName => {
+                        if (
+                            !myAttrVal.item.some(myAttrItem => {
+                                if (attrName === myAttrItem.name) {
+                                    myAttrItem.checked = true
+                                }
+                                return attrName === myAttrItem.name
+                            })
+                        ) {
+                            myAttrVal.item.push({
+                                name: attrName,
+                                checked: true
+                            })
+                        }
+                    })
                 }
             })
-            return rules
-        },
-        isBatch() {
-            return this.structure.some(item => {
-                return item.type == 'input' && item.batch != false
+        })
+        
+        myAttribute.value = newMyAttribute
+        
+        // 因为 skuData 是实时监听 myAttribute 变化并自动生成，使用微任务确保已生成
+        nextTick(() => {
+            sku.value.forEach(skuItem => {
+                form.skuData.forEach(skuDataItem => {
+                    if (skuItem.sku === skuDataItem.sku) {
+                        structure.value.forEach(structureItem => {
+                            skuDataItem[structureItem.name] = skuItem[structureItem.name]
+                        })
+                    }
+                })
             })
-        },
-        // 将 myAttribute 数据还原会 attribute 数据的结构，用于更新 attribute
-        emitAttribute() {
-            let attribute = []
-            this.myAttribute.forEach(v1 => {
+            isInit.value = false
+        })
+    })
+}
+
+// 初始化属性
+watch(
+    attribute,
+    () => {
+        if (!isAsync.value) {
+            init()
+        }
+    },
+    { immediate: true, deep: true }
+)
+
+// 监听选中属性的变化
+watch(myAttribute, () => {
+    if (!isInit.value) {
+        // 更新父组件
+        emit('update:attribute', emitAttribute.value)
+    }
+    // 解决通过 $emit 更新后无法拿到 attribute 最新数据的问题
+    nextTick(() => {
+        if (emitAttribute.value.length !== 0) {
+            combinationAttribute()
+        } else {
+            form.skuData = []
+            const obj = {
+                sku: emptySku.value
+            }
+            structure.value.forEach(v => {
+                if (!(v.type === 'slot' && v.skuProperty === false)) {
+                    obj[v.name] = typeof v.defaultValue !== 'undefined' ? v.defaultValue : ''
+                }
+            })
+            form.skuData.push(obj)
+        }
+        clearValidate()
+    })
+}, { deep: true })
+
+// 监听skuData变化
+watch(() => form.skuData, (newValue, oldValue) => {
+    if (!isInit.value || (newValue.length === 1 && newValue[0].sku === emptySku.value)) {
+        // 如果有老数据，或者 sku 数据为空，则更新父级 sku 数据
+        if (oldValue.length || !sku.value.length) {
+            // 更新父组件
+            const arr = []
+            newValue.forEach(v1 => {
                 const obj = {
-                    name: v1.name,
-                    item: []
+                    sku: v1.sku
                 }
-                v1.item.forEach(v2 => {
-                    if (v2.checked) {
-                        obj.item.push(v2.name)
+                structure.value.forEach(v2 => {
+                    if (!(v2.type === 'slot' && v2.skuProperty === false)) {
+                        obj[v2.name] = v1[v2.name] || (typeof v2.defaultValue !== 'undefined' ? v2.defaultValue : '')
                     }
                 })
-                if (obj.item.length !== 0) {
-                    attribute.push(obj)
-                }
+                arr.push(obj)
             })
-            return attribute
-        }
-    },
-    watch: {
-        myAttribute: {
-            handler() {
-                if (!this.isInit) {
-                    // 更新父组件
-                    this.$emit('update:attribute', this.emitAttribute)
-                }
-                // 解决通过 $emit 更新后无法拿到 attribute 最新数据的问题
-                this.$nextTick(() => {
-                    if (this.attribute.length !== 0) {
-                        this.combinationAttribute()
-                    } else {
-                        this.form.skuData = []
-                        const obj = {
-                            sku: this.emptySku
-                        }
-                        this.structure.forEach(v => {
-                            if (!(v.type == 'slot' && v.skuProperty == false)) {
-                                obj[v.name] = typeof v.defaultValue != 'undefined' ? v.defaultValue : ''
-                            }
-                        })
-                        this.form.skuData.push(obj)
-                    }
-                    this.clearValidate()
-                })
-            },
-            deep: true
-        },
-        'form.skuData': {
-            handler(newValue, oldValue) {
-                if (!this.isInit || (newValue.length == 1 && newValue[0].sku == this.emptySku)) {
-                    // 如果有老数据，或者 sku 数据为空，则更新父级 sku 数据
-                    if (oldValue.length || !this.sku.length) {
-                        // 更新父组件
-                        const arr = []
-                        newValue.forEach(v1 => {
-                            const obj = {
-                                sku: v1.sku
-                            }
-                            this.structure.forEach(v2 => {
-                                if (!(v2.type == 'slot' && v2.skuProperty == false)) {
-                                    obj[v2.name] = v1[v2.name] || (typeof v2.defaultValue != 'undefined' ? v2.defaultValue : '')
-                                }
-                            })
-                            arr.push(obj)
-                        })
-                        this.$emit('update:sku', arr)
-                    }
-                }
-            },
-            deep: true
-        }
-    },
-    mounted() {
-        !this.async && this.init()
-    },
-    methods: {
-        init() {
-            this.$nextTick(() => {
-                this.isInit = true
-                // 初始化 myAttribute
-                let myAttribute = []
-                // 根据 sourceAttribute 复原 myAttribute 的结构
-                this.sourceAttribute.forEach(v => {
-                    const temp = {
-                        name: v.name,
-                        canAddAttribute: typeof v.canAddAttribute != 'undefined' ?  v.canAddAttribute : true,
-                        addAttribute: '',
-                        item: []
-                    }
-                    v.item.forEach(itemName => {
-                        temp.item.push({
-                            name: itemName,
-                            checked: false
-                        })
-                    })
-                    myAttribute.push(temp)
-                })
-                // 根据 attribute 更新 myAttribute
-                this.attribute.forEach(attrVal => {
-                    myAttribute.forEach(myAttrVal => {
-                        if (attrVal.name === myAttrVal.name) {
-                            attrVal.item.forEach(attrName => {
-                                if (
-                                    !myAttrVal.item.some(myAttrItem => {
-                                        if (attrName === myAttrItem.name) {
-                                            myAttrItem.checked = true
-                                        }
-                                        return attrName === myAttrItem.name
-                                    })
-                                ) {
-                                    myAttrVal.item.push({
-                                        name: attrName,
-                                        checked: true
-                                    })
-                                }
-                            })
-                        }
-                    })
-                })
-                this.myAttribute = myAttribute
-                // 通过 sku 更新 skuData，但因为 skuData 是实时监听 myAttribute 变化并自动生成，而 watch 是在 methods 后执行，所以增加 setTimeout 方法，确保 skuData 生成后在执行下面的代码
-                setTimeout(() => {
-                    this.sku.forEach(skuItem => {
-                        this.form.skuData.forEach(skuDataItem => {
-                            if (skuItem.sku === skuDataItem.sku) {
-                                this.structure.forEach(structureItem => {
-                                    skuDataItem[structureItem.name] = skuItem[structureItem.name]
-                                })
-                            }
-                        })
-                    })
-                    this.isInit = false
-                }, 0)
-            })
-        },
-        // 根据 attribute 进行排列组合，生成 skuData 数据
-        combinationAttribute(index = 0, dataTemp = []) {
-            if (index === 0) {
-                for (let i = 0; i < this.attribute[0].item.length; i++) {
-                    const obj = {
-                        sku: this.attribute[0].item[i],
-                        [this.attribute[0].name]: this.attribute[0].item[i]
-                    }
-                    this.structure.forEach(v => {
-                        if (!(v.type == 'slot' && v.skuProperty == false)) {
-                            obj[v.name] = typeof v.defaultValue != 'undefined' ? v.defaultValue : ''
-                        }
-                    })
-                    dataTemp.push(obj)
-                }
-            } else {
-                const temp = []
-                for (let i = 0; i < dataTemp.length; i++) {
-                    for (let j = 0; j < this.attribute[index].item.length; j++) {
-                        temp.push(JSON.parse(JSON.stringify(dataTemp[i])))
-                        temp[temp.length - 1][this.attribute[index].name] = this.attribute[index].item[j]
-                        temp[temp.length - 1]['sku'] = [temp[temp.length - 1]['sku'], this.attribute[index].item[j]].join(this.separator)
-                    }
-                }
-                dataTemp = temp
-            }
-            if (index !== this.attribute.length - 1) {
-                this.combinationAttribute(index + 1, dataTemp)
-            } else {
-                if (!this.isInit || this.async) {
-                    // 将原有的 sku 数据和新的 sku 数据比较，相同的 sku 则把原有的 sku 数据覆盖到新的 sku 数据里
-                    for (let i = 0; i < this.form.skuData.length; i++) {
-                        for (let j = 0; j < dataTemp.length; j++) {
-                            if (this.form.skuData[i].sku === dataTemp[j].sku) {
-                                dataTemp[j] = this.form.skuData[i]
-                            }
-                        }
-                    }
-                }
-                this.form.skuData = dataTemp
-            }
-        },
-        // 新增一个规格
-        onAddAttribute(index) {
-            this.myAttribute[index].addAttribute = this.myAttribute[index].addAttribute.trim()
-            if (this.myAttribute[index].addAttribute !== '') {
-                if (!this.myAttribute[index].addAttribute.includes(this.separator)) {
-                    const flag = this.myAttribute[index].item.some(item => {
-                        return item.name === this.myAttribute[index].addAttribute
-                    })
-                    if (!flag) {
-                        this.myAttribute[index].item.push({
-                            name: this.myAttribute[index].addAttribute,
-                            checked: true
-                        })
-                        this.myAttribute[index].addAttribute = ''
-                    } else {
-                        this.$message({
-                            type: 'warning',
-                            message: '请勿添加相同规格'
-                        })
-                    }
-                } else {
-                    this.$message({
-                        type: 'warning',
-                        message: `规格里不允许出现「 ${this.separator} 」字符，请检查后重新添加`
-                    })
-                }
-            }
-        },
-        onBatchSet(type) {
-            if (this.batch[type] != '') {
-                this.form.skuData.forEach(v => {
-                    v[type] = this.batch[type]
-                })
-                this.batch[type] = ''
-                // 批量设置完成后，触发一次当前列的验证
-                this.validateFieldByColumns([type], () => {})
-            }
-        },
-        // 自定义输入框验证，通过调用 structure 里的 validate 方法实现，重点是 callback 要带过去
-        customizeValidate(rule, value, callback) {
-            let [model, index, name] = rule.field.split('.')
-            this.structure.forEach(v => {
-                if (v.name == name) {
-                    v.validate(this.form[model], index, callback)
-                }
-            })
-        },
-        // sku 表单验证
-        validate(callback) {
-            this.$refs['form'].validate(valid => {
-                callback(valid)
-            })
-        },
-        validateFieldByColumns(colums, callback) {
-            let props = []
-            this.form.skuData.forEach((v, i) => {
-                colums.forEach(v => {
-                    props.push(`skuData.${i}.${v}`)
-                })
-            })
-            this.$refs['form'].validateField(props, valid => {
-                callback(valid)
-            })
-        },
-        validateFieldByRows(index, prop, callback) {
-            this.$refs['form'].validateField([`skuData.${index}.${prop}`], valid => {
-                callback(valid)
-            })
-        },
-        clearValidate() {
-            this.$refs['form'].clearValidate()
+            emit('update:sku', arr)
         }
     }
+}, { deep: true })
+
+// 组合属性，生成SKU表格数据
+const combinationAttribute = (index = 0, dataTemp = []) => {
+    if (index === 0) {
+        for (let i = 0; i < emitAttribute.value[0].item.length; i++) {
+            const obj = {
+                sku: emitAttribute.value[0].item[i],
+                [emitAttribute.value[0].name]: emitAttribute.value[0].item[i]
+            }
+            structure.value.forEach(v => {
+                if (!(v.type === 'slot' && v.skuProperty === false)) {
+                    obj[v.name] = typeof v.defaultValue !== 'undefined' ? v.defaultValue : ''
+                }
+            })
+            dataTemp.push(obj)
+        }
+    } else {
+        const temp = []
+        for (let i = 0; i < dataTemp.length; i++) {
+            for (let j = 0; j < emitAttribute.value[index].item.length; j++) {
+                temp.push(JSON.parse(JSON.stringify(dataTemp[i])))
+                temp[temp.length - 1][emitAttribute.value[index].name] = emitAttribute.value[index].item[j]
+                temp[temp.length - 1]['sku'] = [temp[temp.length - 1]['sku'], emitAttribute.value[index].item[j]].join(separator.value)
+            }
+        }
+        dataTemp = temp
+    }
+    if (index !== emitAttribute.value.length - 1) {
+        combinationAttribute(index + 1, dataTemp)
+    } else {
+        if (!isInit.value || isAsync.value) {
+            // 将原有的 sku 数据和新的 sku 数据比较，相同的 sku 则把原有的 sku 数据覆盖到新的 sku 数据里
+            for (let i = 0; i < form.skuData.length; i++) {
+                for (let j = 0; j < dataTemp.length; j++) {
+                    if (form.skuData[i].sku === dataTemp[j].sku) {
+                        dataTemp[j] = form.skuData[i]
+                    }
+                }
+            }
+        }
+        form.skuData = dataTemp
+    }
 }
+
+// 添加新属性值
+const onAddAttribute = (index) => {
+    const newValue = inputValues.value[index]?.trim();
+    
+    if (!newValue) {
+        ElMessage.warning('请输入规格名称');
+        return;
+    }
+    
+    // 检查分隔符
+    if (newValue.includes(separator.value)) {
+        ElMessage.warning(`规格里不允许出现「 ${separator.value} 」字符，请检查后重新添加`);
+        return;
+    }
+    
+    // 检查重复
+    if (myAttribute.value[index].item.some(item => item.name === newValue)) {
+        ElMessage.warning('请勿添加相同规格');
+        return;
+    }
+    
+    // 添加新属性，并默认选中
+    myAttribute.value[index].item.push({
+        name: newValue,
+        checked: true
+    });
+    
+    // 清空输入框
+    inputValues.value[index] = '';
+}
+
+// 批量设置
+const onBatchSet = (field) => {
+    if (batch[field] !== '') {
+        form.skuData.forEach(row => {
+            row[field] = batch[field]
+        })
+        
+        batch[field] = ''
+    }
+}
+
+// 表单验证
+const validate = (callback) => {
+    if (formRef.value) {
+        formRef.value.validate(valid => {
+            callback && callback(valid)
+        })
+    } else {
+        callback && callback(false)
+    }
+}
+
+// 自定义验证
+const validateFieldByColumns = (columns, callback) => {
+    if (!formRef.value) {
+        callback && callback(false)
+        return
+    }
+
+    const propPaths = []
+    form.skuData.forEach((_, i) => {
+        columns.forEach(col => {
+            propPaths.push(`skuData.${i}.${col}`)
+        })
+    })
+    
+    formRef.value.validateField(propPaths, valid => {
+        callback && callback(valid)
+    })
+}
+
+// 按行验证
+const validateFieldByRows = (index, prop, callback) => {
+    if (formRef.value) {
+        formRef.value.validateField([`skuData.${index}.${prop}`], valid => {
+            callback && callback(valid)
+        })
+    } else {
+        callback && callback(false)
+    }
+}
+
+// 清除验证
+const clearValidate = () => {
+    if (formRef.value) {
+        formRef.value.clearValidate()
+    }
+}
+
+// 暴露方法
+defineExpose({
+    init,
+    validate,
+    validateFieldByColumns,
+    validateFieldByRows,
+    clearValidate
+})
 </script>
 
 <style lang="scss" scoped>
-.sku-container {
-    ::v-deep .el-card {
-        margin: 10px 0;
-        .el-card__header {
-            line-height: initial;
-            padding: 10px 20px;
-        }
-        .el-card__body {
-            padding: 10px 20px 20px;
-        }
-    }
-    .sku-check {
-        .theme-1 {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            .item {
-                width: 32%;
-                &:last-child:nth-child(3n - 1) {
-                    margin-right: calc(100% - 32% * 2 - 4% / 2) !important;
-                }
-                .add-attr {
-                    width: 100%;
-                    margin-top: 10px;
+.sku-form {
+    &-container {
+        margin-bottom: 10px;
+
+        &-1 {
+            .sku-form-section {
+                margin-bottom: 10px;
+            }
+
+            .sku-form-title {
+                margin-bottom: 10px;
+                font-weight: bold;
+            }
+
+            .sku-form-tags-box {
+                margin-bottom: 10px;
+
+                .checkbox-group {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
                 }
             }
         }
-        .theme-2 {
+
+        &-2 {
+            padding: 10px;
             border: 1px solid #ebeef5;
-            border-bottom: 0;
-            margin-bottom: 20px;
-        }
-    }
-    .sku-name {
-        text-align: right;
-    }
-    .batch-set {
-        width: 100%;
-        margin-top: 5px;
-    }
-    .sku-list {
-        line-height: initial;
-        ::v-deep .el-input__inner {
-            text-align: center;
-        }
-        ::v-deep .el-table__append-wrapper {
-            overflow: initial;
-            .el-table {
-                overflow: initial;
-                .el-table__body-wrapper {
-                    overflow: initial;
+            border-radius: 4px;
+
+            .sku-form-section {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                margin-bottom: 10px;
+
+                &:last-child {
+                    margin-bottom: 0;
                 }
             }
+
+            .sku-form-title {
+                min-width: 70px;
+                margin-right: 10px;
+                font-weight: bold;
+            }
+
+            .sku-form-tags-box {
+                flex: 1;
+                margin-right: 10px;
+
+                .checkbox-group {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                }
+            }
+
+            .sku-form-add-tags {
+                width: 230px;
+            }
         }
-        ::v-deep .el-form-item {
+    }
+
+    &-table {
+        :deep(.el-table .cell) {
+            padding: 0 5px;
+        }
+
+        :deep(.el-form-item) {
             margin-bottom: 0;
-            .el-form-item__content {
-                line-height: initial;
-                .el-form-item__error {
-                    margin-left: 0;
-                }
+        }
+
+        :deep(.el-form-item__content) {
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+        }
+
+        &-disabled {
+            .el-table {
+                pointer-events: none;
             }
         }
-        .required_title::before {
-            content: '*';
-            color: #f56c6c;
-        }
+    }
+
+    &-batch {
+        margin-bottom: 5px;
+    }
+
+    &-tips {
+        margin-right: 5px;
+        color: #409eff;
+        cursor: pointer;
     }
 }
 </style>
