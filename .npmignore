@@ -1,0 +1,30 @@
+# 开发文件
+.git/
+.github/
+.vscode/
+node_modules/
+src/
+public/
+.gitignore
+.eslintrc.js
+.eslintignore
+vite.config.js
+
+# 环境和构建文件
+.DS_Store
+.env*
+*.log
+.editorconfig
+
+# 测试和示例文件
+test/
+examples/
+src/examples/
+src/router/
+src/App.vue
+src/main.js
+
+# 其他
+.npmrc
+.travis.yml
+.nvmrc 

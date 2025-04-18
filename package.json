@@ -1,18 +1,37 @@
 {
-    "name": "vue-sku-form",
+    "name": "vue3-sku-form",
     "description": "基于 Vue3 & Element Plus 的电商 SKU 表单配置组件",
     "keywords": [
         "sku",
-        "vue",
-        "element",
+        "vue3",
         "element-plus",
-        "form"
+        "form",
+        "rich-media",
+        "ecommerce",
+        "product"
     ],
-    "version": "1.0.0",
+    "version": "1.0.1",
     "type": "module",
     "private": false,
+    "author": {
+        "name": "Your Name",
+        "email": "your.email@example.com",
+        "url": "https://github.com/yourusername"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/yourusername/vue3-sku-form"
+    },
+    "homepage": "https://github.com/yourusername/vue3-sku-form#readme",
+    "bugs": {
+        "url": "https://github.com/yourusername/vue3-sku-form/issues"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
     "files": [
-        "dist"
+        "dist",
+        "README.md"
     ],
     "main": "./dist/SkuForm.umd.js",
     "module": "./dist/SkuForm.js",
@@ -27,23 +46,25 @@
         "dev": "vite",
         "preview": "vite preview",
         "build": "vite build",
-        "build-lib": "vite build",
-        "lint": "eslint --ext .js,.vue src"
+        "lint": "eslint --ext .js,.vue src",
+        "prepublishOnly": "npm run build"
     },
-    "author": "",
     "license": "MIT",
     "dependencies": {
-        "element-plus": "^2.3.12",
-        "vue": "^3.3.4",
-        "vue-router": "^4.2.4"
+        "vue": "^3.3.4"
+    },
+    "peerDependencies": {
+        "element-plus": "^2.3.0",
+        "vue-router": "^4.0.0"
     },
     "devDependencies": {
         "@vitejs/plugin-vue": "^4.2.3",
+        "element-plus": "^2.3.12",
         "eslint": "^8.46.0",
         "eslint-plugin-vue": "^9.16.1",
         "sass": "^1.64.2",
-        "sass-loader": "^13.3.2",
-        "vite": "^4.4.9"
+        "vite": "^4.4.9",
+        "vue-router": "^4.2.4"
     },
     "eslintConfig": {
         "root": true,
@@ -57,8 +78,7 @@
         "parserOptions": {
             "ecmaVersion": 2022,
             "sourceType": "module"
-        },
-        "rules": {}
+        }
     },
     "browserslist": [
         "> 1%",

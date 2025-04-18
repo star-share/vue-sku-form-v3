@@ -31,5 +31,12 @@ export default [
         meta: {
             title: '综合测试用例'
         }
+    },
+    {
+        path: '/rich-media',
+        component: () => import('../examples/rich-media.vue'),
+        meta: {
+            title: '富媒体规格'
+        }
     }
 ]

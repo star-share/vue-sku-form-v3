@@ -1,8 +1,8 @@
-# vue-sku-form
+# vue3-sku-form
 
 基于 Vue3 & Element Plus 的电商 SKU 表单配置组件
 
-这是[vue-sku-form](https://github.com/hooray/vue-sku-form)的Vue3版本，完全兼容原有的功能和API。
+这是原[vue-sku-form](https://github.com/hooray/vue-sku-form)的Vue3版本，完全兼容原有的功能和API，并增加了富媒体规格支持。
 
 ## ✨ 特性
 
@@ -11,6 +11,7 @@
 - 支持使用 v-model:attribute 和 v-model:sku 双向绑定
 - 🚀 支持多属性 SKU 组合，自动进行笛卡尔积计算
 - ✅ 支持属性选择和添加新属性
+- 🖼️ 支持富媒体规格值，可以同时展示图片和文字
 - 📊 支持批量设置 SKU 数据
 - 🔍 内置表单验证功能
 - 🎨 支持多种主题风格
@@ -19,7 +20,7 @@
 ## 安装
 
 ```bash
-npm install vue-sku-form
+npm install vue3-sku-form
 ```
 
 ## 使用
@@ -31,7 +32,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
-import SkuForm from 'vue-sku-form'
+import SkuForm from 'vue3-sku-form'
 
 const app = createApp(App)
 app.use(ElementPlus)
@@ -63,7 +64,7 @@ app.mount('#app')
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import SkuForm from 'vue-sku-form'
+import SkuForm from 'vue3-sku-form'
 
 const skuFormRef = ref(null)
 const sourceAttribute = ref([
@@ -108,6 +109,42 @@ const validate = () => {
 </script>
 ```
 
+## 富媒体规格值
+
+新版本支持富媒体规格值，可以在规格中同时显示图片和文字，特别适合颜色、材质等需要可视化展示的属性：
+
+```js
+// 带图片的规格值定义
+const sourceAttribute = ref([
+  {
+    name: '颜色',
+    item: [
+      { name: '黑色', image: 'https://example.com/black.png' },
+      { name: '金色', image: 'https://example.com/gold.png' },
+      { name: '白色', image: 'https://example.com/white.png' }
+    ]
+  },
+  {
+    name: '内存',
+    item: ['16G', '32G', '64G'] // 单一文本仍然支持
+  }
+])
+```
+
+还可以使用提供的方法动态添加带图片的规格：
+
+```js
+// 使用ref获取组件实例
+const skuFormRef = ref(null)
+
+// 动态添加带图片的规格
+skuFormRef.value.onAddAttributeWithImage(
+  attributeIndex, // 属性索引
+  '规格名称',
+  '图片路径'
+)
+```
+
 ## 参数说明
 
 | 参数 | 说明 | 类型 | 默认值 |
@@ -132,6 +169,7 @@ const validate = () => {
 | validateFieldByColumns | 按列验证表单 | (columns: Array, callback: Function) |
 | validateFieldByRows | 按行验证表单 | (index: Number, prop: String, callback: Function) |
 | clearValidate | 清除验证结果 | - |
+| onAddAttributeWithImage | 添加带图片的规格值 | (index: Number, name: String, imagePath: String) |
 
 ## 事件
 
@@ -178,7 +216,7 @@ const validate = () => {
 
 <script setup>
 import { ref } from 'vue'
-import SkuForm from 'vue-sku-form'
+import SkuForm from 'vue3-sku-form'
 
 const theme = ref(1)
 const sourceAttribute = ref([
