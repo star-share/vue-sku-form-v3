@@ -38,5 +38,12 @@ export default [
         meta: {
             title: '富媒体规格'
         }
+    },
+    {
+        path: '/complex-package',
+        component: () => import('../examples/complex-package.vue'),
+        meta: {
+            title: '复杂套餐配置'
+        }
     }
 ]
