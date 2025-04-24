@@ -14,21 +14,13 @@ export default defineConfig({
     }
   },
   build: {
-    lib: {
-      entry: path.resolve(__dirname, 'src/components/index.js'),
-      name: 'SkuForm',
-      fileName: 'SkuForm'
-    },
+    outDir: 'dist',
+    emptyOutDir: true,
     rollupOptions: {
-      external: ['vue', 'element-plus'],
-      output: {
-        globals: {
-          vue: 'Vue',
-          'element-plus': 'ElementPlus'
-        }
-      }
-    },
-    cssCodeSplit: false
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+      },
+    }
   },
   css: {
     preprocessorOptions: {
@@ -37,4 +29,4 @@ export default defineConfig({
       }
     }
   }
-})
+}) 

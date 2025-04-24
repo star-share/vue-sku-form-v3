@@ -1,0 +1,82 @@
+# Vue项目构建并部署到GitHub Pages
+name: Build and Deploy Vue App to Pages
+
+on:
+  # 在main分支有推送时触发
+  push:
+    branches: ["main"]
+
+  # 允许从Actions标签页手动触发
+  workflow_dispatch:
+
+# 设置GITHUB_TOKEN权限以允许部署到GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 允许一次并发部署，跳过正在运行的部署之间排队的运行
+# 但不取消进行中的运行，因为我们希望允许这些生产部署完成
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # 构建和部署作业
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        
+      - name: 设置Node.js环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      # 改进的缓存策略
+      - name: 缓存依赖
+        uses: actions/cache@v3
+        with:
+          path: |
+            **/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+          
+      - name: 安装依赖
+        run: npm ci
+        
+      # 添加一个环境变量，确保基本URL配置正确
+      - name: 构建项目
+        run: npm run build:demo
+        env:
+          BASE_URL: /${{ github.event.repository.name }}/
+        
+      - name: 创建.nojekyll文件
+        run: |
+          touch dist/.nojekyll
+        
+      - name: 设置GitHub Pages
+        uses: actions/configure-pages@v5
+        
+      - name: 上传构建产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # 上传dist目录（Vue项目构建输出）
+          path: './dist'
+          
+      - name: 部署到GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: 部署结果通知
+        if: always()
+        run: |
+          echo "部署结果: ${{ job.status }}"
+          echo "部署URL: ${{ steps.deployment.outputs.page_url }}"

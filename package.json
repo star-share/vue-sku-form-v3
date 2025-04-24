@@ -46,6 +46,7 @@
         "dev": "vite",
         "preview": "vite preview",
         "build": "vite build",
+        "build:demo": "vite build --config vite.config.demo.js",
         "lint": "eslint --ext .js,.vue src",
         "prepublishOnly": "npm run build"
     },

@@ -227,6 +227,27 @@ const sku = ref([])
 </script>
 ```
 
+## 在线演示
+
+访问我们的GitHub Pages以查看在线演示：[https://vue3-sku-form.github.io](https://vue3-sku-form.github.io)
+
+## 部署说明
+
+本项目使用GitHub Actions自动部署到GitHub Pages。每次推送到main分支时，都会触发构建和部署流程。
+
+如果您想自行部署，可以执行以下步骤：
+
+```bash
+# 安装依赖
+npm install
+
+# 构建项目
+npm run build
+
+# 部署（需要先配置好GitHub Pages）
+# 您可以使用GitHub Actions或手动部署dist目录
+```
+
 ## 开发
 
 ```bash
